@@ -196,7 +196,12 @@ export function createSessionToken(address: string): string {
  * TODO: Verify a session token.
  */
 export function verifySessionToken(token: string): { valid: boolean; address?: string } {
-    // TODO: Implement JWT verification or session validation
-    // For now, return placeholder
+    // Basic implementation for the placeholder token format: session_{address}_{timestamp}
+    if (token && token.startsWith('session_')) {
+        const parts = token.split('_');
+        if (parts.length >= 2) {
+            return { valid: true, address: parts[1] };
+        }
+    }
     return { valid: false };
 }
