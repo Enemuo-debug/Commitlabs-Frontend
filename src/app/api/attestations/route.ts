@@ -11,7 +11,7 @@ import {
   TooManyRequestsError,
 } from '@/lib/backend/errors';
 import { withApiHandler } from '@/lib/backend/withApiHandler';
-import { ok } from '@/lib/backend/apiResponse';
+import { ok, fail } from '@/lib/backend/apiResponse';
 import { getMockData } from '@/lib/backend/mockDb';
 import type { RecordAttestationOnChainParams } from '@/lib/backend/services/contracts';
 
@@ -157,7 +157,7 @@ function mapToRecordParams(
   };
 }
 
-export const GET = withApiHandler(async (req: NextRequest) => {
+export const GET = withApiHandler(async (req: NextRequest, context: { params: Record<string, string> }, correlationId: string) => {
   const ip = req.ip ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
 
   const isAllowed = await checkRateLimit(ip, 'api/attestations');
@@ -167,10 +167,10 @@ export const GET = withApiHandler(async (req: NextRequest) => {
 
   const { attestations } = await getMockData();
 
-  return ok({ attestations }, 200);
+  return ok({ attestations }, undefined, 200, correlationId);
 });
 
-export const POST = withApiHandler(async (req: NextRequest) => {
+export const POST = withApiHandler(async (req: NextRequest, context: { params: Record<string, string> }, correlationId: string) => {
   const ip = req.ip ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
 
   const isAllowed = await checkRateLimit(ip, 'api/attestations');
@@ -190,15 +190,13 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   try {
     await getCommitmentFromChain(body.commitmentId);
   } catch (err) {
-    const normalized = normalizeBackendError(err, {
-      code: 'BLOCKCHAIN_CALL_FAILED',
-      message: 'Invalid commitment or unable to fetch commitment from chain.',
-      status: 502,
-      details: { commitmentId: body.commitmentId },
-    });
-    return NextResponse.json(toBackendErrorResponse(normalized), {
-      status: normalized.status,
-    });
+    return fail(
+      'BLOCKCHAIN_CALL_FAILED',
+      'Invalid commitment or unable to fetch commitment from chain.',
+      { commitmentId: body.commitmentId },
+      502,
+      correlationId
+    );
   }
 
   const params = mapToRecordParams(body);
@@ -215,13 +213,10 @@ export const POST = withApiHandler(async (req: NextRequest) => {
       recordedAt: result.recordedAt,
     };
 
-    return ok(
-      {
-        attestation: summary,
-        txReference: result.txHash ?? null,
-      },
-      201
-    );
+    return ok({
+      attestation: summary,
+      txReference: result.txHash ?? null,
+    }, undefined, 201, correlationId);
   } catch (err) {
     const normalized = normalizeBackendError(err, {
       code: 'BLOCKCHAIN_CALL_FAILED',
@@ -229,8 +224,12 @@ export const POST = withApiHandler(async (req: NextRequest) => {
       status: 502,
       details: { commitmentId: body.commitmentId, attestationType: body.attestationType },
     });
-    return NextResponse.json(toBackendErrorResponse(normalized), {
-      status: normalized.status,
-    });
+    return fail(
+      'BLOCKCHAIN_CALL_FAILED',
+      'Failed to record attestation on chain.',
+      { commitmentId: body.commitmentId, attestationType: body.attestationType },
+      502,
+      correlationId
+    );
   }
 });

@@ -15,7 +15,7 @@ interface CreateCommitmentRequestBody {
 }
 
 
-export const GET = withApiHandler(async (req: NextRequest) => {
+export const GET = withApiHandler(async (req: NextRequest, context: { params: Record<string, string> }, correlationId: string) => {
   const { searchParams } = new URL(req.url);
 
   const ownerAddress = searchParams.get("ownerAddress");
@@ -23,11 +23,11 @@ export const GET = withApiHandler(async (req: NextRequest) => {
   const pageSize = Number(searchParams.get("pageSize") ?? 10);
 
   if (!ownerAddress) {
-    return fail("Missing ownerAddress", "BAD_REQUEST", 400);
+    return fail("Missing ownerAddress", "BAD_REQUEST", 400, correlationId);
   }
 
   if (page < 1 || pageSize < 1 || pageSize > 100) {
-    return fail("Invalid pagination params", "BAD_REQUEST", 400);
+    return fail("Invalid pagination params", "BAD_REQUEST", 400, correlationId);
   }
 
   const ip = req.ip ?? req.headers.get("x-forwarded-for") ?? "anonymous";
@@ -64,10 +64,10 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     page,
     pageSize,
     total: mapped.length, // TODO: optimize if chain indexing improves
-  });
+  }, undefined, 200, correlationId);
 });
 
-export const POST = withApiHandler(async (req: NextRequest) => {
+export const POST = withApiHandler(async (req: NextRequest, context: { params: Record<string, string> }, correlationId: string) => {
   const ip = req.ip ?? req.headers.get("x-forwarded-for") ?? "anonymous";
 
   const isAllowed = await checkRateLimit(ip, "api/commitments");
@@ -88,23 +88,23 @@ export const POST = withApiHandler(async (req: NextRequest) => {
 
   // Basic validation
   if (!ownerAddress || typeof ownerAddress !== "string") {
-    return fail("Invalid ownerAddress", "BAD_REQUEST", 400);
+    return fail("BAD_REQUEST", "Invalid ownerAddress", undefined, 400, correlationId);
   }
 
   if (!asset || typeof asset !== "string") {
-    return fail("Invalid asset", "BAD_REQUEST", 400);
+    return fail("BAD_REQUEST", "Invalid asset", undefined, 400, correlationId);
   }
 
   if (!amount || isNaN(Number(amount))) {
-    return fail("Invalid amount", "BAD_REQUEST", 400);
+    return fail("BAD_REQUEST", "Invalid amount", undefined, 400, correlationId);
   }
 
   if (!durationDays || durationDays <= 0) {
-    return fail("Invalid durationDays", "BAD_REQUEST", 400);
+    return fail("BAD_REQUEST", "Invalid durationDays", undefined, 400, correlationId);
   }
 
   if (maxLossBps == null || maxLossBps < 0) {
-    return fail("Invalid maxLossBps", "BAD_REQUEST", 400);
+    return fail("BAD_REQUEST", "Invalid maxLossBps", undefined, 400, correlationId);
   }
 
   // Call chain interaction
@@ -117,5 +117,5 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     metadata,
   });
 
-  return ok(result, 201);
+  return ok(result, undefined, 201, correlationId);
 });

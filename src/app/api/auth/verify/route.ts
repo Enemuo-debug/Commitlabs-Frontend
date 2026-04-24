@@ -13,7 +13,7 @@ const VerifyRequestSchema = z.object({
     message: z.string().min(1, 'Message is required'),
 });
 
-export const POST = withApiHandler(async (req: NextRequest) => {
+export const POST = withApiHandler(async (req: NextRequest, context: { params: Record<string, string> }, correlationId: string) => {
     const ip = req.ip ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
 
     // Rate limiting
@@ -48,16 +48,34 @@ export const POST = withApiHandler(async (req: NextRequest) => {
         throw new UnauthorizedError(verificationResult.error || 'Signature verification failed');
     }
 
-    // TODO: Create a proper session token (JWT or similar)
-    const sessionToken = createSessionToken(address);
+    // Create JWT session token with CSRF token
+    const sessionResult = createSessionToken(address);
 
-    // Return success response with session token
-    return ok({
+    // Return unified response with session cookie
+    const response = ok({
         verified: true,
         address: verificationResult.address,
         message: 'Signature verified successfully',
-        // TODO: Replace with proper JWT/session management
-        sessionToken,
-        sessionType: 'placeholder', // Indicates this is a placeholder implementation
+        csrfToken: sessionResult.csrfToken, // Send CSRF token for client to use in subsequent requests
+    }, undefined, 200, correlationId);
+
+    // Set secure HTTP-only session cookie
+    response.cookies.set('session', sessionResult.token, {
+        httpOnly: true, // Prevent JavaScript access
+        secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+        sameSite: 'strict', // Prevent CSRF
+        maxAge: 24 * 60 * 60, // 24 hours in seconds
+        path: '/', // Available site-wide
     });
+
+    // Set non-HttpOnly CSRF cookie for client-side access (double-submit pattern)
+    response.cookies.set('csrf', sessionResult.csrfToken, {
+        httpOnly: false, // Allow JavaScript access for CSRF token
+        secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+        sameSite: 'strict', // Prevent CSRF
+        maxAge: 24 * 60 * 60, // 24 hours in seconds
+        path: '/', // Available site-wide
+    });
+
+    return response;
 });

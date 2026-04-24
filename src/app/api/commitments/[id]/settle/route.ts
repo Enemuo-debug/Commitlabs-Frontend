@@ -16,8 +16,8 @@ interface Params {
     params: { id: string };
 }
 
-export const POST = withApiHandler(async (req: NextRequest, { params }: Params) => {
-    const { id } = params;
+export const POST = withApiHandler(async (req: NextRequest, context: { params: Record<string, string> }, correlationId: string) => {
+    const { id } = context.params;
     const ip = req.ip ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
 
     // Rate limiting
@@ -71,7 +71,7 @@ export const POST = withApiHandler(async (req: NextRequest, { params }: Params) 
             txHash: settlementResult.txHash,
             reference: settlementResult.reference,
             settledAt: new Date().toISOString(),
-        });
+        }, undefined, 200, correlationId);
 
     } catch (error) {
         // Log failed settlement attempt

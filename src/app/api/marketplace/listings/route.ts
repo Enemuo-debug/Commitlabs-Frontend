@@ -90,12 +90,12 @@ function parseQuery(searchParams: URLSearchParams): ParseResult {
     };
 }
 
-export async function GET(req: NextRequest): Promise<NextResponse> {
+export const GET = withApiHandler(async (req: NextRequest, context: { params: Record<string, string> }, correlationId: string) => {
     const ip = req.ip ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
     const isAllowed = await checkRateLimit(ip, 'api/marketplace/listings');
 
     if (!isAllowed) {
-        return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+        throw new ValidationError('Too many requests');
     }
 
     try {
@@ -107,25 +107,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
             listings,
             cards: listings.map(toMarketplaceCard),
             total: listings.length,
-        });
+        }, undefined, 200, correlationId);
     } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to list marketplace listings.';
-        const isValidation = message.startsWith('Invalid');
-
-        return NextResponse.json(
-            {
-                success: false,
-                error: {
-                    code: isValidation ? 'VALIDATION_ERROR' : 'INTERNAL_ERROR',
-                    message,
-                },
-            },
-            { status: isValidation ? 400 : 500 }
-        );
+        // Let withApiHandler handle the error automatically
+        throw error;
     }
 }
 
-export const POST = withApiHandler(async (req: NextRequest) => {
+export const POST = withApiHandler(async (req: NextRequest, context: { params: Record<string, string> }, correlationId: string) => {
         let body: unknown;
 
         try {
@@ -145,5 +134,5 @@ export const POST = withApiHandler(async (req: NextRequest) => {
                 listing,
         };
 
-        return ok(response, 201);
+        return ok(response, undefined, 201, correlationId);
 });

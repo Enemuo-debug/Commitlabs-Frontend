@@ -14,7 +14,7 @@ import type { CancelListingResponse } from '@/types/marketplace';
  *   sellerAddress: string (required) - Address of the seller cancelling the listing
  */
 export const DELETE = withApiHandler(
-  async (req: NextRequest, { params }: { params: Record<string, string> }) => {
+  async (req: NextRequest, { params }: { params: Record<string, string> }, correlationId: string) => {
     const listingId = params.id;
 
     if (!listingId) {
@@ -38,6 +38,6 @@ export const DELETE = withApiHandler(
       message: 'Listing cancelled successfully',
     };
 
-    return ok(response);
+    return ok(response, undefined, 200, correlationId);
   }
 );

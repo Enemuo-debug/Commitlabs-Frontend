@@ -11,7 +11,7 @@ const NonceRequestSchema = z.object({
     address: z.string().min(1, 'Address is required'),
 });
 
-export const POST = withApiHandler(async (req: NextRequest) => {
+export const POST = withApiHandler(async (req: NextRequest, context: { params: Record<string, string> }, correlationId: string) => {
     const ip = req.ip ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
 
     // Rate limiting
@@ -48,5 +48,5 @@ export const POST = withApiHandler(async (req: NextRequest) => {
         nonce,
         message: challengeMessage,
         expiresAt: nonceRecord.expiresAt.toISOString(),
-    });
+    }, undefined, 200, correlationId);
 });
