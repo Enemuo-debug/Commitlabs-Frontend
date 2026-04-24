@@ -15,6 +15,10 @@ export default defineConfig({
         '.next/',
         'src/**/*.module.css',
       ],
+      thresholds: {
+        'src/app/api/auth/nonce/route.ts': { statements: 95, branches: 95, functions: 95, lines: 95 },
+        'src/app/api/auth/verify/route.ts': { statements: 95, branches: 95, functions: 95, lines: 95 },
+      },
     },
   },
   resolve: {

@@ -30,7 +30,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
 
     const validation = NonceRequestSchema.safeParse(body);
     if (!validation.success) {
-        throw new ValidationError('Invalid request data', validation.error.errors);
+        throw new ValidationError('Invalid request data', validation.error.issues);
     }
 
     const { address } = validation.data;

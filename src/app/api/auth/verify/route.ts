@@ -32,7 +32,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
 
     const validation = VerifyRequestSchema.safeParse(body);
     if (!validation.success) {
-        throw new ValidationError('Invalid request data', validation.error.errors);
+        throw new ValidationError('Invalid request data', validation.error.issues);
     }
 
     const { address, signature, message } = validation.data;
