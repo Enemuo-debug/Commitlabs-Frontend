@@ -11,6 +11,7 @@ import {
   TooManyRequestsError,
 } from '@/lib/backend/errors';
 import { withApiHandler } from '@/lib/backend/withApiHandler';
+import { validateStellarAddress } from '@/lib/backend/validation';
 import { ok } from '@/lib/backend/apiResponse';
 import { getMockData } from '@/lib/backend/mockDb';
 import type { RecordAttestationOnChainParams } from '@/lib/backend/services/contracts';
@@ -178,10 +179,11 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     throw new TooManyRequestsError();
   }
 
-  let body: RecordAttestationRequestBody;
+ let body: RecordAttestationRequestBody;
   try {
     const raw = await req.json();
     body = parseAndValidateBody(raw);
+    validateStellarAddress(body.verifiedBy, "verifiedBy");
   } catch (err) {
     if (err instanceof ValidationError) throw err;
     throw new ValidationError('Invalid JSON in request body.');

@@ -4,6 +4,7 @@ import { withApiHandler } from "@/lib/backend/withApiHandler";
 import { ok, fail } from "@/lib/backend/apiResponse";
 import { TooManyRequestsError } from "@/lib/backend/errors";
 import { getUserCommitmentsFromChain, createCommitmentOnChain } from "@/lib/backend/services/contracts";
+import { validateStellarAddress } from "@/lib/backend/validation";
 
 interface CreateCommitmentRequestBody {
   ownerAddress: string;
@@ -24,6 +25,12 @@ export const GET = withApiHandler(async (req: NextRequest) => {
 
   if (!ownerAddress) {
     return fail("Missing ownerAddress", "BAD_REQUEST", 400);
+  }
+
+  try {
+    validateStellarAddress(ownerAddress, "ownerAddress");
+  } catch {
+    return fail("Invalid ownerAddress: must be a valid Stellar address (G... format).", "BAD_REQUEST", 400);
   }
 
   if (page < 1 || pageSize < 1 || pageSize > 100) {
@@ -89,6 +96,12 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   // Basic validation
   if (!ownerAddress || typeof ownerAddress !== "string") {
     return fail("Invalid ownerAddress", "BAD_REQUEST", 400);
+  }
+
+  try {
+    validateStellarAddress(ownerAddress, "ownerAddress");
+  } catch {
+    return fail("Invalid ownerAddress: must be a valid Stellar address (G... format).", "BAD_REQUEST", 400);
   }
 
   if (!asset || typeof asset !== "string") {
