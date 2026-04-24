@@ -4,6 +4,7 @@ import { checkRateLimit } from '@/lib/backend/rateLimit';
 import { withApiHandler } from '@/lib/backend/withApiHandler';
 import { ok } from '@/lib/backend/apiResponse';
 import { TooManyRequestsError, ValidationError, NotFoundError, ConflictError } from '@/lib/backend/errors';
+import { getClientIp } from '@/lib/backend/getClientIp';
 import { settleCommitmentOnChain } from '@/lib/backend/services/contracts';
 import { logCommitmentSettled } from '@/lib/backend/logger';
 
@@ -18,7 +19,7 @@ interface Params {
 
 export const POST = withApiHandler(async (req: NextRequest, { params }: Params) => {
     const { id } = params;
-    const ip = req.ip ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
+    const ip = getClientIp(req);
 
     // Rate limiting
     const isAllowed = await checkRateLimit(ip, 'api/commitments/settle');

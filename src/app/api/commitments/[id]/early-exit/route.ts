@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/backend/rateLimit';
+import { getClientIp } from '@/lib/backend/getClientIp';
 import { logEarlyExit } from '@/lib/backend/logger';
 
 interface Params {
@@ -9,7 +10,7 @@ interface Params {
 export async function POST(req: NextRequest, { params }: Params) {
     const { id } = params;
 
-    const ip = req.ip || req.headers.get('x-forwarded-for') || 'anonymous';
+    const ip = getClientIp(req);
     const isAllowed = await checkRateLimit(ip, 'api/commitments/early-exit');
     if (!isAllowed) {
         return NextResponse.json({ error: 'Too many requests' }, { status: 429 });

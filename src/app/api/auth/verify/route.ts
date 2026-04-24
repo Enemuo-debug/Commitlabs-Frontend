@@ -5,6 +5,7 @@ import { withApiHandler } from '@/lib/backend/withApiHandler';
 import { ok } from '@/lib/backend/apiResponse';
 import { TooManyRequestsError, ValidationError, UnauthorizedError } from '@/lib/backend/errors';
 import { verifySignatureWithNonce, createSessionToken } from '@/lib/backend/auth';
+import { getClientIp } from '@/lib/backend/getClientIp';
 
 // Request validation schema
 const VerifyRequestSchema = z.object({
@@ -14,7 +15,7 @@ const VerifyRequestSchema = z.object({
 });
 
 export const POST = withApiHandler(async (req: NextRequest) => {
-    const ip = req.ip ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
+    const ip = getClientIp(req);
 
     // Rate limiting
     const isAllowed = await checkRateLimit(ip, 'api/auth/verify');

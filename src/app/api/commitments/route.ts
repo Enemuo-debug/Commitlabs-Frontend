@@ -3,6 +3,7 @@ import { checkRateLimit } from "@/lib/backend/rateLimit";
 import { withApiHandler } from "@/lib/backend/withApiHandler";
 import { ok, fail } from "@/lib/backend/apiResponse";
 import { TooManyRequestsError } from "@/lib/backend/errors";
+import { getClientIp } from "@/lib/backend/getClientIp";
 import { getUserCommitmentsFromChain, createCommitmentOnChain } from "@/lib/backend/services/contracts";
 
 interface CreateCommitmentRequestBody {
@@ -30,7 +31,7 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     return fail("Invalid pagination params", "BAD_REQUEST", 400);
   }
 
-  const ip = req.ip ?? req.headers.get("x-forwarded-for") ?? "anonymous";
+  const ip = getClientIp(req);
 
   const isAllowed = await checkRateLimit(ip, "api/commitments");
   if (!isAllowed) {
@@ -68,7 +69,7 @@ export const GET = withApiHandler(async (req: NextRequest) => {
 });
 
 export const POST = withApiHandler(async (req: NextRequest) => {
-  const ip = req.ip ?? req.headers.get("x-forwarded-for") ?? "anonymous";
+  const ip = getClientIp(req);
 
   const isAllowed = await checkRateLimit(ip, "api/commitments");
   if (!isAllowed) {

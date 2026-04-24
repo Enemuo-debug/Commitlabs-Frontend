@@ -3,9 +3,10 @@ import { checkRateLimit } from '@/lib/backend/rateLimit';
 import { withApiHandler } from '@/lib/backend/withApiHandler';
 import { ok } from '@/lib/backend/apiResponse';
 import { TooManyRequestsError } from '@/lib/backend/errors';
+import { getClientIp } from '@/lib/backend/getClientIp';
 
 export const POST = withApiHandler(async (req: NextRequest) => {
-    const ip = req.ip ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
+    const ip = getClientIp(req);
 
     const isAllowed = await checkRateLimit(ip, 'api/auth');
     if (!isAllowed) {

@@ -10,6 +10,7 @@ import {
   ValidationError,
   TooManyRequestsError,
 } from '@/lib/backend/errors';
+import { getClientIp } from '@/lib/backend/getClientIp';
 import { withApiHandler } from '@/lib/backend/withApiHandler';
 import { ok } from '@/lib/backend/apiResponse';
 import { getMockData } from '@/lib/backend/mockDb';
@@ -158,7 +159,7 @@ function mapToRecordParams(
 }
 
 export const GET = withApiHandler(async (req: NextRequest) => {
-  const ip = req.ip ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
+  const ip = getClientIp(req);
 
   const isAllowed = await checkRateLimit(ip, 'api/attestations');
   if (!isAllowed) {
@@ -171,7 +172,7 @@ export const GET = withApiHandler(async (req: NextRequest) => {
 });
 
 export const POST = withApiHandler(async (req: NextRequest) => {
-  const ip = req.ip ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
+  const ip = getClientIp(req);
 
   const isAllowed = await checkRateLimit(ip, 'api/attestations');
   if (!isAllowed) {
