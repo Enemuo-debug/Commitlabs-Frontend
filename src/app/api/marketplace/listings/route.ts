@@ -3,6 +3,7 @@ import { ok } from '@/lib/backend/apiResponse';
 import { checkRateLimit } from '@/lib/backend/rateLimit';
 import { withApiHandler } from '@/lib/backend/withApiHandler';
 import { ValidationError } from '@/lib/backend/errors';
+import { getClientIp } from '@/lib/backend/getClientIp';
 import {
     getMarketplaceSortKeys,
     isMarketplaceSortBy,
@@ -91,7 +92,7 @@ function parseQuery(searchParams: URLSearchParams): ParseResult {
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-    const ip = req.ip ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
+    const ip = getClientIp(req);
     const isAllowed = await checkRateLimit(ip, 'api/marketplace/listings');
 
     if (!isAllowed) {

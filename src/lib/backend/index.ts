@@ -30,4 +30,6 @@ export {
   HTTP_ERROR_CODES,
 } from "./errors";
 export { withApiHandler } from "./withApiHandler";
+export { getClientIp } from "./getClientIp";
+export type { GetClientIpOptions } from "./getClientIp";
 export { escapeCsvField, buildCsv } from "./csv";

@@ -5,6 +5,7 @@ import { withApiHandler } from '@/lib/backend/withApiHandler';
 import { ok, fail } from '@/lib/backend/apiResponse';
 import { TooManyRequestsError, ValidationError } from '@/lib/backend/errors';
 import { generateNonce, storeNonce, generateChallengeMessage } from '@/lib/backend/auth';
+import { getClientIp } from '@/lib/backend/getClientIp';
 
 // Request validation schema
 const NonceRequestSchema = z.object({
@@ -12,7 +13,7 @@ const NonceRequestSchema = z.object({
 });
 
 export const POST = withApiHandler(async (req: NextRequest) => {
-    const ip = req.ip ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
+    const ip = getClientIp(req);
 
     // Rate limiting
     const isAllowed = await checkRateLimit(ip, 'api/auth/nonce');
