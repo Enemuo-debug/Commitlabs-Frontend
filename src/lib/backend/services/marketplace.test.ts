@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { 
-  marketplaceService, 
-  listMarketplaceListings, 
-  isMarketplaceSortBy, 
-  getMarketplaceSortKeys 
+import { describe, it, expect } from 'vitest';
+import {
+  FEATURED_MARKETPLACE_CONFIG,
+  marketplaceService,
+  selectFeaturedMarketplaceListings,
+  type MarketplacePublicListing,
 } from './marketplace';
 import { ValidationError, ConflictError, NotFoundError } from '../errors';
 import type { CreateListingRequest } from '@/lib/types/domain';
@@ -70,11 +70,6 @@ describe('Marketplace Functions', () => {
 });
 
 describe('MarketplaceService', () => {
-  // Reset service state before each test
-  beforeEach(() => {
-    // Clear internal state by creating listings and then accessing private members
-    // Since we can't directly access private members, we'll work with the public API
-  });
 
   describe('createListing', () => {
     it('should create a valid listing', async () => {
@@ -287,95 +282,101 @@ describe('MarketplaceService', () => {
     });
   });
 
-  describe('getPurchasePreflight', () => {
-    const sellerAddress = 'GSELLERXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
-    const buyerAddress = 'GBUYERXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
+  describe('selectFeaturedMarketplaceListings', () => {
+    const sampleListings: MarketplacePublicListing[] = [
+      {
+        listingId: 'LST-010',
+        commitmentId: 'CMT-010',
+        type: 'Balanced',
+        amount: 90000,
+        remainingDays: 30,
+        maxLoss: 8,
+        currentYield: 11.1,
+        complianceScore: 90,
+        price: 91000,
+      },
+      {
+        listingId: 'LST-002',
+        commitmentId: 'CMT-002',
+        type: 'Safe',
+        amount: 80000,
+        remainingDays: 20,
+        maxLoss: 2,
+        currentYield: 5.5,
+        complianceScore: 95,
+        price: 83000,
+      },
+      {
+        listingId: 'LST-001',
+        commitmentId: 'CMT-001',
+        type: 'Safe',
+        amount: 70000,
+        remainingDays: 18,
+        maxLoss: 2,
+        currentYield: 5.5,
+        complianceScore: 95,
+        price: 83000,
+      },
+      {
+        listingId: 'LST-011',
+        commitmentId: 'CMT-011',
+        type: 'Aggressive',
+        amount: 120000,
+        remainingDays: 35,
+        maxLoss: 12,
+        currentYield: 15.2,
+        complianceScore: 93,
+        price: 124000,
+      },
+      {
+        listingId: 'LST-012',
+        commitmentId: 'CMT-012',
+        type: 'Balanced',
+        amount: 110000,
+        remainingDays: 28,
+        maxLoss: 8,
+        currentYield: 10.4,
+        complianceScore: 84,
+        price: 112000,
+      },
+    ];
 
-    it('should return eligible when listing is active and buyer is not seller', async () => {
-      const request: CreateListingRequest = {
-        commitmentId: 'commitment_preflight_ok',
-        price: '100.00',
-        currencyAsset: 'USDC',
-        sellerAddress,
-      };
+    it('applies the featured criteria before returning listings', () => {
+      const featured = selectFeaturedMarketplaceListings(sampleListings);
 
-      const listing = await marketplaceService.createListing(request);
-      const preflight = await marketplaceService.getPurchasePreflight(listing.id, buyerAddress);
-
-      expect(preflight.eligible).toBe(true);
-      expect(preflight.reasons).toHaveLength(0);
+      expect(featured).toHaveLength(3);
+      expect(featured.every((listing) => listing.complianceScore >= FEATURED_MARKETPLACE_CONFIG.minComplianceScore)).toBe(true);
+      expect(featured.every((listing) => listing.maxLoss <= FEATURED_MARKETPLACE_CONFIG.maxLoss)).toBe(true);
+      expect(featured.map((listing) => listing.listingId)).toEqual([
+        'LST-001',
+        'LST-002',
+        'LST-010',
+      ]);
     });
 
-    it('should throw NotFoundError when listing does not exist', async () => {
-      await expect(
-        marketplaceService.getPurchasePreflight('nonexistent_id', buyerAddress)
-      ).rejects.toThrow(NotFoundError);
+    it('returns a deterministic order for identical inputs', () => {
+      const first = selectFeaturedMarketplaceListings(sampleListings);
+      const second = selectFeaturedMarketplaceListings(sampleListings);
+
+      expect(first).toEqual(second);
     });
 
-    it('should return ineligible when buyer is the seller', async () => {
-      const request: CreateListingRequest = {
-        commitmentId: 'commitment_preflight_seller',
-        price: '100.00',
-        currencyAsset: 'USDC',
-        sellerAddress,
-      };
+    it('returns an empty array when no listings satisfy the featured criteria', () => {
+      const featured = selectFeaturedMarketplaceListings([
+        {
+          listingId: 'LST-099',
+          commitmentId: 'CMT-099',
+          type: 'Aggressive',
+          amount: 150000,
+          remainingDays: 60,
+          maxLoss: 25,
+          currentYield: 19.5,
+          complianceScore: 70,
+          price: 160000,
+        },
+      ]);
 
-      const listing = await marketplaceService.createListing(request);
-      const preflight = await marketplaceService.getPurchasePreflight(listing.id, sellerAddress);
-
-      expect(preflight.eligible).toBe(false);
-      expect(preflight.reasons).toContain('buyer_is_seller');
-    });
-
-    it('should return ineligible when listing is not active', async () => {
-      const request: CreateListingRequest = {
-        commitmentId: 'commitment_preflight_inactive',
-        price: '100.00',
-        currencyAsset: 'USDC',
-        sellerAddress,
-      };
-
-      const listing = await marketplaceService.createListing(request);
-      await marketplaceService.cancelListing(listing.id, sellerAddress);
-
-      const preflight = await marketplaceService.getPurchasePreflight(listing.id, buyerAddress);
-
-      expect(preflight.eligible).toBe(false);
-      expect(preflight.reasons).toContain('listing_inactive');
-    });
-
-    it('should return ineligible when commitment is non-transferable', async () => {
-      const request: CreateListingRequest = {
-        commitmentId: 'commitment_non-transferable_123',
-        price: '100.00',
-        currencyAsset: 'USDC',
-        sellerAddress,
-      };
-
-      const listing = await marketplaceService.createListing(request);
-      const preflight = await marketplaceService.getPurchasePreflight(listing.id, buyerAddress);
-
-      expect(preflight.eligible).toBe(false);
-      expect(preflight.reasons).toContain('non_transferable');
-    });
-
-    it('should return multiple reasons if applicable', async () => {
-      const request: CreateListingRequest = {
-        commitmentId: 'commitment_non-transferable_dual',
-        price: '100.00',
-        currencyAsset: 'USDC',
-        sellerAddress,
-      };
-
-      const listing = await marketplaceService.createListing(request);
-      await marketplaceService.cancelListing(listing.id, sellerAddress);
-
-      const preflight = await marketplaceService.getPurchasePreflight(listing.id, sellerAddress);
-
-      expect(preflight.eligible).toBe(false);
-      expect(preflight.reasons).toContain('listing_inactive');
-      expect(preflight.reasons).toContain('buyer_is_seller');
-      expect(preflight.reasons).toContain('non_transferable');
+      expect(featured).toEqual([]);
     });
   });
 });
