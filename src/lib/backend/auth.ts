@@ -3,10 +3,10 @@ import Stellar from '@stellar/stellar-sdk';
 import { getKV } from './kv';
 
 export interface NonceRecord {
-    nonce: string;
-    address: string;
-    createdAt: Date;
-    expiresAt: Date;
+  nonce: string;
+  address: string;
+  createdAt: Date;
+  expiresAt: Date;
 }
 
 export interface SessionRecord {
@@ -17,9 +17,9 @@ export interface SessionRecord {
 }
 
 export interface SignatureVerificationRequest {
-    address: string;
-    signature: string;
-    message: string;
+  address: string;
+  signature: string;
+  message: string;
 }
 
 export interface SignatureVerificationResult { 
@@ -82,9 +82,9 @@ export async function consumeNonce(nonce: string): Promise<boolean> {
 }
 
 export function verifyStellarSignature(
-    address: string,
-    signature: string,
-    message: string
+  address: string,
+  signature: string,
+  message: string,
 ): SignatureVerificationResult {
     try {
         if (!address || !signature || !message) {
@@ -96,7 +96,6 @@ export function verifyStellarSignature(
     } catch (error) {
         return { valid: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
-}
 
 /**
  * Verify a signature request including nonce validation.
@@ -156,8 +155,20 @@ export async function verifySignatureWithNonce(request: SignatureVerificationReq
             };
         }
     }
-    
-    return verificationResult;
+
+    return {
+      valid: true,
+      address,
+    };
+  } catch (error) {
+    return {
+      valid: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Unknown verification error',
+    };
+  }
 }
 
 export function generateChallengeMessage(nonce: string, domain: string = 'commitlabs.org'): string {
