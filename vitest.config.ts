@@ -21,7 +21,15 @@ export default defineConfig({
         'dist/',
         '.next/',
         'src/**/*.module.css',
+        'src/**/*.d.ts',
+        'src/lib/backend/services/contracts.ts',
       ],
+      thresholds: {
+        lines: 19,
+        functions: 14,
+        branches: 14,
+        statements: 19,
+      },
     },
   },
   resolve: {
