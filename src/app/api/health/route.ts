@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { withApiHandler } from "@/lib/backend/withApiHandler";
+import { ok, methodNotAllowed } from "@/lib/backend/apiResponse";
 import { logInfo } from "@/lib/backend/logger";
 import { attachSecurityHeaders } from "@/utils/response";
 import { methodNotAllowed } from "@/lib/backend/apiResponse";
 
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req: NextRequest) => {
   logInfo(req, "Healthcheck requested");
   const response = NextResponse.json({
     status: "healthy",

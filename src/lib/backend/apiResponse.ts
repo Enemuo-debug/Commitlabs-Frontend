@@ -139,3 +139,18 @@ export function fail(
     headers: Object.keys(headers).length > 0 ? headers : undefined,
   });
 }
+
+export function methodNotAllowed(allowed: string[]): NextRouteHandler {
+  const allowHeader = allowed.join(", ");
+  return (): NextResponse<FailResponse> =>
+    NextResponse.json<FailResponse>(
+      {
+        success: false,
+        error: {
+          code: "METHOD_NOT_ALLOWED",
+          message: `Method Not Allowed. Supported methods: ${allowHeader}`,
+        },
+      },
+      { status: 405, headers: { Allow: allowHeader } },
+    );
+}
