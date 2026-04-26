@@ -5,17 +5,16 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
-    exclude: [
-      'node_modules/**',
-      'tests/api/commitments.test.ts',
-      'tests/api/health.test.ts',
-    ],
+    include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       include: [
-        'src/lib/backend/**/*.ts',
-        'src/utils/**/*.ts',
+        'src/app/api/health/**',
+        'src/app/api/commitments/**',
+        'src/utils/response.ts',
+        'src/lib/backend/withApiHandler.ts',
+        'src/lib/backend/apiResponse.ts',
       ],
       exclude: [
         'node_modules/',
