@@ -14,6 +14,7 @@ import {
 } from '@/lib/backend/errors';
 import { getClientIp } from '@/lib/backend/getClientIp';
 import { withApiHandler } from '@/lib/backend/withApiHandler';
+import { validateStellarAddress } from '@/lib/backend/validation';
 import { ok } from '@/lib/backend/apiResponse';
 import { parseJsonWithLimit, JSON_BODY_LIMITS } from '@/lib/backend/jsonBodyLimit';
 import { getMockData } from '@/lib/backend/mockDb';
@@ -139,12 +140,13 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   const isAllowed = await checkRateLimit(ip, 'api/attestations');
   if (!isAllowed) throw new TooManyRequestsError();
 
-  let body: RecordAttestationRequestBody;
+ let body: RecordAttestationRequestBody;
   try {
     const raw = await parseJsonWithLimit(req, {
       limitBytes: JSON_BODY_LIMITS.attestationsCreate,
     });
     body = parseAndValidateBody(raw);
+    validateStellarAddress(body.verifiedBy, "verifiedBy");
   } catch (err) {
     // Preserve 413 / 400 / other ApiError semantics; only generic failures
     // are remapped to a 400 "Invalid JSON" error.

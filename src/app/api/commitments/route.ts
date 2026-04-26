@@ -6,6 +6,7 @@ import { ok, fail, methodNotAllowed } from "@/lib/backend/apiResponse";
 import { TooManyRequestsError } from "@/lib/backend/errors";
 import { parseJsonWithLimit, JSON_BODY_LIMITS } from "@/lib/backend/jsonBodyLimit";
 import { getUserCommitmentsFromChain, createCommitmentOnChain } from "@/lib/backend/services/contracts";
+import { validateStellarAddress } from "@/lib/backend/validation";
 
 // Query validation schema
 const CommitmentsQuerySchema = z.object({
@@ -118,6 +119,12 @@ export const POST = withApiHandler(async (req: NextRequest) => {
 
   if (!ownerAddress || typeof ownerAddress !== "string") {
     return fail("Invalid ownerAddress", "BAD_REQUEST", 400);
+  }
+
+  try {
+    validateStellarAddress(ownerAddress, "ownerAddress");
+  } catch {
+    return fail("Invalid ownerAddress: must be a valid Stellar address (G... format).", "BAD_REQUEST", 400);
   }
 
   if (!asset || typeof asset !== "string") {
