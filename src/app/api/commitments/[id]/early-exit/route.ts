@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { checkRateLimit } from '@/lib/backend/rateLimit';
+import { getClientIp } from '@/lib/backend/getClientIp';
 import { logEarlyExit } from '@/lib/backend/logger';
 import { withApiHandler } from '@/lib/backend/withApiHandler';
 import { ok } from '@/lib/backend/apiResponse';

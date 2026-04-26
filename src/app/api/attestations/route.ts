@@ -12,7 +12,9 @@ import {
   ValidationError,
   TooManyRequestsError,
 } from '@/lib/backend/errors';
+import { getClientIp } from '@/lib/backend/getClientIp';
 import { withApiHandler } from '@/lib/backend/withApiHandler';
+import { validateStellarAddress } from '@/lib/backend/validation';
 import { ok } from '@/lib/backend/apiResponse';
 import { parseJsonWithLimit, JSON_BODY_LIMITS } from '@/lib/backend/jsonBodyLimit';
 import { getMockData } from '@/lib/backend/mockDb';
@@ -124,7 +126,7 @@ function mapToRecordParams(
   };
 }
 
-export const GET = withApiHandler(async (req: NextRequest) => {
+export const GET = withApiHandler(async (req: NextRequest, context: { params: Record<string, string> }, correlationId: string) => {
   const ip = req.ip ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
   const isAllowed = await checkRateLimit(ip, 'api/attestations');
   if (!isAllowed) throw new TooManyRequestsError();
@@ -133,17 +135,18 @@ export const GET = withApiHandler(async (req: NextRequest) => {
   return ok({ attestations }, 200);
 });
 
-export const POST = withApiHandler(async (req: NextRequest) => {
+export const POST = withApiHandler(async (req: NextRequest, context: { params: Record<string, string> }, correlationId: string) => {
   const ip = req.ip ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
   const isAllowed = await checkRateLimit(ip, 'api/attestations');
   if (!isAllowed) throw new TooManyRequestsError();
 
-  let body: RecordAttestationRequestBody;
+ let body: RecordAttestationRequestBody;
   try {
     const raw = await parseJsonWithLimit(req, {
       limitBytes: JSON_BODY_LIMITS.attestationsCreate,
     });
     body = parseAndValidateBody(raw);
+    validateStellarAddress(body.verifiedBy, "verifiedBy");
   } catch (err) {
     // Preserve 413 / 400 / other ApiError semantics; only generic failures
     // are remapped to a 400 "Invalid JSON" error.

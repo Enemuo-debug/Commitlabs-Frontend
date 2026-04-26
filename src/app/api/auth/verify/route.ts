@@ -6,6 +6,7 @@ import { ok } from '@/lib/backend/apiResponse';
 import { ApiError, TooManyRequestsError, ValidationError, UnauthorizedError } from '@/lib/backend/errors';
 import { parseJsonWithLimit, JSON_BODY_LIMITS } from '@/lib/backend/jsonBodyLimit';
 import { verifySignatureWithNonce, createSessionToken } from '@/lib/backend/auth';
+import { getClientIp } from '@/lib/backend/getClientIp';
 
 const VerifyRequestSchema = z.object({
     address: z.string().min(1, 'Address is required'),
@@ -14,7 +15,7 @@ const VerifyRequestSchema = z.object({
 });
 
 export const POST = withApiHandler(async (req: NextRequest) => {
-    const ip = req.ip ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
+    const ip = getClientIp(req);
 
     // Rate limiting
     const isAllowed = await checkRateLimit(ip, 'api/auth/verify');
