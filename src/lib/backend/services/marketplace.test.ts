@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   FEATURED_MARKETPLACE_CONFIG,
   marketplaceService,
@@ -9,11 +9,6 @@ import { ValidationError, ConflictError, NotFoundError } from '../errors';
 import type { CreateListingRequest } from '@/types/marketplace';
 
 describe('MarketplaceService', () => {
-  // Reset service state before each test
-  beforeEach(() => {
-    // Clear internal state by creating listings and then accessing private members
-    // Since we can't directly access private members, we'll work with the public API
-  });
 
   describe('createListing', () => {
     it('should create a valid listing', async () => {

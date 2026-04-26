@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { GET } from '@/app/api/health/route'
-import { createMockRequest, parseResponse } from './helpers'
+import { createMockRequest, createMockRouteContext, parseResponse } from './helpers'
 
 describe('GET /api/health', () => {
   it('should return a 200 status with health status', async () => {
     const request = createMockRequest('http://localhost:3000/api/health')
-    const response = await GET(request, { params: {} })
+    const response = await GET(request, createMockRouteContext())
     const result = await parseResponse(response)
 
     expect(result.status).toBe(200)
@@ -14,9 +14,33 @@ describe('GET /api/health', () => {
     expect(result.data.data).toHaveProperty('version')
   })
 
+  it('should include x-request-id response header (generated)', async () => {
+    const request = createMockRequest('http://localhost:3000/api/health')
+    const response = await GET(request, createMockRouteContext())
+    const result = await parseResponse(response)
+
+    const requestId = result.headers.get('x-request-id')
+    expect(typeof requestId).toBe('string')
+    expect(requestId?.length).toBeGreaterThan(0)
+  })
+
+  it('should preserve x-request-id when provided by client', async () => {
+    const incomingRequestId = 'test-request-id-123'
+    const request = createMockRequest('http://localhost:3000/api/health', {
+      headers: {
+        'x-request-id': incomingRequestId,
+      },
+    })
+
+    const response = await GET(request, createMockRouteContext())
+    const result = await parseResponse(response)
+
+    expect(result.headers.get('x-request-id')).toBe(incomingRequestId)
+  })
+
   it('should return ISO timestamp in response', async () => {
     const request = createMockRequest('http://localhost:3000/api/health')
-    const response = await GET(request, { params: {} })
+    const response = await GET(request, createMockRouteContext())
     const result = await parseResponse(response)
 
     const timestamp = new Date(result.data.data.timestamp)
@@ -26,7 +50,7 @@ describe('GET /api/health', () => {
 
   it('should return version in response', async () => {
     const request = createMockRequest('http://localhost:3000/api/health')
-    const response = await GET(request, { params: {} })
+    const response = await GET(request, createMockRouteContext())
     const result = await parseResponse(response)
 
     expect(result.data.data.version).toMatch(/^\d+\.\d+\.\d+$/)
@@ -34,7 +58,7 @@ describe('GET /api/health', () => {
 
   it('should attach security headers', async () => {
     const request = createMockRequest('http://localhost:3000/api/health')
-    const response = await GET(request, { params: {} })
+    const response = await GET(request, createMockRouteContext())
 
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff')
     expect(response.headers.get('X-Frame-Options')).toBe('DENY')

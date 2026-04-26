@@ -96,16 +96,6 @@ export function verifyStellarSignature(
     if (!address || !signature || !message) {
       return { valid: false, error: "Missing required fields" };
     }
-    const isValid = Stellar.verifySignature(address, signature, message);
-    if (!isValid) return { valid: false, error: "Invalid signature" };
-    return { valid: true, address };
-  } catch (error) {
-    return {
-      valid: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}
 
 /**
  * Verify a signature request including nonce validation.
@@ -170,9 +160,20 @@ export async function verifySignatureWithNonce(
         error: "Nonce already consumed or expired during verification",
       };
     }
-  }
 
-  return verificationResult;
+    return {
+      valid: true,
+      address,
+    };
+  } catch (error) {
+    return {
+      valid: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Unknown verification error',
+    };
+  }
 }
 
 export function generateChallengeMessage(
@@ -241,3 +242,17 @@ export function _clearStores(): void {
   nonceStore.clear();
   sessionStore.clear();
 }
+
+/**
+ * Clean up expired and revoked tokens periodically.
+ */
+setInterval(() => {
+    const now = Date.now();
+    for (const [token, record] of sessionStore.entries()) {
+        // Remove revoked tokens after 7 days
+        if (record.revoked && record.revokedAt && 
+            now - record.revokedAt.getTime() > 7 * 24 * 60 * 60 * 1000) {
+            sessionStore.delete(token);
+        }
+    }
+}, 60 * 60 * 1000); // Clean up every hour
